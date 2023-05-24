@@ -1,0 +1,50 @@
+# /root/tests/test_app.py
+import unittest
+from unittest.mock import patch
+from flask import url_for
+from flask_testing import TestCase
+
+# Import the app module
+import sys
+sys.path.append('/root')
+from app import app
+
+class TestApp(TestCase):
+
+    def create_app(self):
+        app.config['TESTING'] = True
+        return app
+
+    def test_hello_world(self):
+        response = self.client.get(url_for('hello_world'))
+        self.assertEqual(response.data.decode(), 'hello world!!')
+
+    def test_greetUser(self):
+        response = self.client.get(url_for('greetUser'))
+        self.assert_template_used('home.html')
+
+    def test_calculateResult_GET(self):
+        response = self.client.get(url_for('calculateResult'))
+        self.assert_template_used('test.html')
+        self.assertEqual(response.context['message'], '')
+
+    @patch('app.request')
+    def test_calculateResult_POST_correct(self, mock_request):
+        mock_request.method = 'POST'
+        mock_request.form = {'height': '8848'}
+        response = self.client.post(url_for('calculateResult'), data={'height': '8848'})
+        expected_message = "Your Answer:8848\nYou have passed the test,Keep it up."
+        self.assert_template_used('test.html')
+        self.assertEqual(response.context['message'], expected_message)
+
+    @patch('app.request')
+    def test_calculateResult_POST_incorrect(self, mock_request):
+        mock_request.method = 'POST'
+        mock_request.form = {'height': '1234'}
+        response = self.client.post(url_for('calculateResult'), data={'height': '1234'})
+        expected_message = "Your Answer:1234\nYou have failed the test, keep trying."
+        self.assert_template_used('test.html')
+        self.assertEqual(response.context['message'], expected_message)
+
+if __name__ == '__main__':
+    unittest.main()
